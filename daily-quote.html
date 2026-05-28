@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="每日一句">
+<meta name="theme-color" content="#1a1a2e">
+<title>每日一句</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700&family=Noto+Sans+TC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --accent-pos: #f5c842;
+    --accent-neg: #e05c7a;
+    --text: #f0ede6;
+    --text-dim: #8a8a9a;
+    --border: rgba(255,255,255,0.08);
+    --radius: 18px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Background orbs */
+  .bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb1 { width: 300px; height: 300px; background: var(--accent-pos); top: -80px; right: -80px; }
+  .orb2 { width: 250px; height: 250px; background: var(--accent-neg); bottom: 10%; left: -100px; }
+  .orb3 { width: 200px; height: 200px; background: #5566ff; top: 40%; right: -60px; opacity: 0.1; }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px 40px;
+  }
+
+  /* Header */
+  header {
+    padding: 56px 0 24px;
+    text-align: center;
+  }
+  .header-date {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 300;
+  }
+  .header-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: 8px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 5px;
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-weight: 400;
+  }
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  /* Tab content */
+  .tab-content { display: none; flex-direction: column; gap: 20px; }
+  .tab-content.active { display: flex; }
+
+  /* Today card */
+  .today-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .today-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-pos), var(--accent-neg));
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .today-card.neg-energy::before {
+    background: linear-gradient(90deg, var(--accent-neg), #8855ff);
+  }
+
+  .card-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 400;
+    align-self: flex-start;
+  }
+  .tag-pos { background: rgba(245,200,66,0.12); color: var(--accent-pos); }
+  .tag-neg { background: rgba(224,92,122,0.12); color: var(--accent-neg); }
+
+  .quote-text {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    line-height: 1.8;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+  .quote-mark-open {
+    font-size: 48px;
+    line-height: 0;
+    color: rgba(255,255,255,0.06);
+    font-family: Georgia, serif;
+    position: absolute;
+    top: 40px; left: 20px;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .quote-source {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .copy-btn {
+    width: 32px; height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .copy-btn:active { background: var(--surface2); color: var(--text); }
+
+  /* Random section */
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 300;
+  }
+
+  .random-card {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    border: 1px solid var(--border);
+    position: relative;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+    transition: opacity 0.3s;
+  }
+  .random-text {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px;
+    line-height: 1.9;
+    font-weight: 300;
+    color: var(--text);
+  }
+  .random-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .draw-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(245,200,66,0.15), rgba(224,92,122,0.15));
+    border: 1px solid rgba(245,200,66,0.2);
+    border-radius: 14px;
+    color: var(--text);
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    transition: all 0.25s;
+    font-weight: 400;
+  }
+  .draw-btn:active {
+    transform: scale(0.97);
+    background: linear-gradient(135deg, rgba(245,200,66,0.25), rgba(224,92,122,0.25));
+  }
+
+  /* spinning animation */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+  /* My quotes tab */
+  .add-form {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .form-label { font-size: 12px; color: var(--text-dim); letter-spacing: 1px; }
+  .form-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Noto Serif TC', serif;
+    font-size: 15px;
+    padding: 12px 14px;
+    resize: none;
+    line-height: 1.7;
+    min-height: 90px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-textarea:focus { border-color: rgba(245,200,66,0.4); }
+  .form-textarea::placeholder { color: var(--text-dim); font-size: 14px; }
+
+  .form-row { display: flex; gap: 8px; align-items: center; }
+  .form-select {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    appearance: none;
+  }
+  .add-submit-btn {
+    flex: 1;
+    padding: 10px;
+    background: linear-gradient(135deg, rgba(245,200,66,0.2), rgba(224,92,122,0.2));
+    border: 1px solid rgba(245,200,66,0.3);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 2px;
+  }
+  .add-submit-btn:active { transform: scale(0.97); }
+
+  .my-quotes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .my-quote-item {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 18px 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    animation: fadeIn 0.3s ease;
+  }
+  .my-quote-text {
+    flex: 1;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text);
+    font-weight: 300;
+  }
+  .my-quote-actions { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .delete-btn {
+    width: 30px; height: 30px;
+    border: 1px solid rgba(224,92,122,0.2);
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(224,92,122,0.5);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .delete-btn:active { background: rgba(224,92,122,0.15); color: var(--accent-neg); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 2;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: rgba(30,30,50,0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 22px;
+    border-radius: 30px;
+    font-size: 13px;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* install hint */
+  .install-hint {
+    margin-top: auto;
+    padding-top: 32px;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(138,138,154,0.4);
+    line-height: 2;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="bg-orb orb3"></div>
+
+<div class="app">
+
+  <header>
+    <div class="header-date" id="headerDate"></div>
+    <div class="header-title">每 日 一 句</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('today')">今日語錄</button>
+    <button class="tab-btn" onclick="switchTab('random')">隨機抽句</button>
+    <button class="tab-btn" onclick="switchTab('mine')">我的語錄</button>
+  </div>
+
+  <!-- TODAY TAB -->
+  <div class="tab-content active" id="tab-today">
+    <div class="today-card" id="todayCard">
+      <span class="quote-mark-open">"</span>
+      <div class="card-tag tag-pos" id="todayTag">✦ 正能量</div>
+      <div class="quote-text" id="todayText"></div>
+      <div class="card-footer">
+        <span class="quote-source" id="todaySource"></span>
+        <button class="copy-btn" onclick="copyToday()" title="複製">⎘</button>
+      </div>
+    </div>
+
+    <div class="install-hint">
+      iPhone：Safari → 分享 → 加入主畫面<br>
+      Android：Chrome → 選單 → 新增到主畫面
+    </div>
+  </div>
+
+  <!-- RANDOM TAB -->
+  <div class="tab-content" id="tab-random">
+    <span class="section-label">隨機一句</span>
+
+    <div class="random-card" id="randomCard">
+      <div class="card-tag tag-pos" id="randomTag">✦ 正能量</div>
+      <div class="random-text" id="randomText">按下方按鈕，抽出一句語錄</div>
+      <div class="random-footer">
+        <span class="quote-source" id="randomSource"></span>
+        <button class="copy-btn" onclick="copyRandom()" title="複製" id="randomCopyBtn" style="display:none">⎘</button>
+      </div>
+    </div>
+
+    <button class="draw-btn" onclick="drawRandom()">✦ 再抽一句 ✦</button>
+  </div>
+
+  <!-- MINE TAB -->
+  <div class="tab-content" id="tab-mine">
+    <div class="add-form">
+      <span class="form-label">新增一句話</span>
+      <textarea class="form-textarea" id="newQuoteText" placeholder="寫下你想記住的一句話…" maxlength="200"></textarea>
+      <div class="form-row">
+        <select class="form-select" id="newQuoteType">
+          <option value="pos">✦ 正能量</option>
+          <option value="neg">✦ 負能量</option>
+        </select>
+        <input class="form-textarea" style="min-height:unset;padding:10px 12px;font-size:13px;font-family:inherit" id="newQuoteSource" placeholder="來源（選填）" maxlength="40">
+        <button class="add-submit-btn" onclick="addMyQuote()">新增</button>
+      </div>
+    </div>
+
+    <div class="my-quotes-list" id="myQuotesList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Built-in quotes ──────────────────────────────────────
+const BUILTIN = [
+  { text: "你所經歷的每一個困難，都是在為更強大的你鋪路。", type: "pos", source: "" },
+  { text: "每一天都是新的開始，你有機會重新定義自己。", type: "pos", source: "" },
+  { text: "不要等待完美的時機，你現在就已經足夠了。", type: "pos", source: "" },
+  { text: "堅持做讓你恐懼的事，那裡才是成長的地方。", type: "pos", source: "" },
+  { text: "善待自己，你是唯一一個要陪自己走完這一生的人。", type: "pos", source: "" },
+  { text: "微小的進步，加起來就是巨大的改變。", type: "pos", source: "" },
+  { text: "你無法控制別人怎麼看你，但你可以決定自己怎麼看自己。", type: "pos", source: "" },
+  { text: "有些事情沒有意義，它就是發生了，而你繼續走。", type: "neg", source: "" },
+  { text: "不是每段努力都有回報，但不努力一定沒有。", type: "neg", source: "" },
+  { text: "你已經疲憊了，可以慢下來，但不要停下來。", type: "neg", source: "" },
+  { text: "有時候你盡了全力，結果還是很糟，那也沒關係。", type: "neg", source: "" },
+  { text: "世界不欠你溫柔，但你可以欠自己一點。", type: "neg", source: "" },
+  { text: "並不是所有人都會理解你，那也不是你的問題。", type: "neg", source: "" },
+  { text: "接受自己有些日子就是什麼都不想做，這也是人生的一部分。", type: "neg", source: "" },
+  { text: "失去是真實的，但你從失去中學到的東西也是。", type: "neg", source: "" },
+];
+
+// ─── Storage ──────────────────────────────────────────────
+function getMyQuotes() {
+  try { return JSON.parse(localStorage.getItem('myQuotes') || '[]'); } catch { return []; }
+}
+function saveMyQuotes(arr) {
+  localStorage.setItem('myQuotes', JSON.stringify(arr));
+}
+
+// ─── Date helpers ─────────────────────────────────────────
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+function getAllQuotes() {
+  return [...BUILTIN, ...getMyQuotes()];
+}
+function getTodayQuote() {
+  const all = getAllQuotes();
+  // Deterministic pick by date
+  const key = getTodayKey();
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return all[hash % all.length];
+}
+
+// ─── Render today ─────────────────────────────────────────
+function renderToday() {
+  const q = getTodayQuote();
+  const card = document.getElementById('todayCard');
+  const tag = document.getElementById('todayTag');
+  const text = document.getElementById('todayText');
+  const source = document.getElementById('todaySource');
+
+  text.textContent = q.text;
+  source.textContent = q.source || '';
+
+  if (q.type === 'pos') {
+    tag.textContent = '✦ 正能量';
+    tag.className = 'card-tag tag-pos';
+    card.classList.remove('neg-energy');
+  } else {
+    tag.textContent = '✦ 負能量';
+    tag.className = 'card-tag tag-neg';
+    card.classList.add('neg-energy');
+  }
+}
+
+// ─── Random ───────────────────────────────────────────────
+let lastRandomIdx = -1;
+function drawRandom() {
+  const all = getAllQuotes();
+  let idx;
+  do { idx = Math.floor(Math.random() * all.length); } while (all.length > 1 && idx === lastRandomIdx);
+  lastRandomIdx = idx;
+  const q = all[idx];
+
+  const card = document.getElementById('randomCard');
+  const tag = document.getElementById('randomTag');
+  const text = document.getElementById('randomText');
+  const source = document.getElementById('randomSource');
+  const copyBtn = document.getElementById('randomCopyBtn');
+
+  card.classList.remove('fade-in');
+  void card.offsetWidth;
+  card.classList.add('fade-in');
+
+  text.textContent = q.text;
+  source.textContent = q.source || '';
+  copyBtn.style.display = 'flex';
+
+  if (q.type === 'pos') {
+    tag.textContent = '✦ 正能量';
+    tag.className = 'card-tag tag-pos';
+  } else {
+    tag.textContent = '✦ 負能量';
+    tag.className = 'card-tag tag-neg';
+  }
+}
+
+// ─── Copy ─────────────────────────────────────────────────
+function copyToday() {
+  const text = document.getElementById('todayText').textContent;
+  navigator.clipboard?.writeText(text).then(() => showToast('已複製 ✓'));
+}
+function copyRandom() {
+  const text = document.getElementById('randomText').textContent;
+  navigator.clipboard?.writeText(text).then(() => showToast('已複製 ✓'));
+}
+
+// ─── My quotes ────────────────────────────────────────────
+function addMyQuote() {
+  const text = document.getElementById('newQuoteText').value.trim();
+  if (!text) { showToast('請輸入句子'); return; }
+  const type = document.getElementById('newQuoteType').value;
+  const source = document.getElementById('newQuoteSource').value.trim();
+  const arr = getMyQuotes();
+  arr.unshift({ text, type, source, id: Date.now() });
+  saveMyQuotes(arr);
+  document.getElementById('newQuoteText').value = '';
+  document.getElementById('newQuoteSource').value = '';
+  renderMyQuotes();
+  showToast('已新增 ✓');
+}
+
+function deleteMyQuote(id) {
+  const arr = getMyQuotes().filter(q => q.id !== id);
+  saveMyQuotes(arr);
+  renderMyQuotes();
+  showToast('已刪除');
+}
+
+function renderMyQuotes() {
+  const arr = getMyQuotes();
+  const list = document.getElementById('myQuotesList');
+  if (arr.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✦</div>還沒有自訂語錄<br>新增一句屬於你的話吧</div>`;
+    return;
+  }
+  list.innerHTML = arr.map(q => `
+    <div class="my-quote-item">
+      <div style="flex:1">
+        <div class="card-tag ${q.type==='pos'?'tag-pos':'tag-neg'}" style="margin-bottom:10px;font-size:10px">
+          ${q.type==='pos'?'✦ 正能量':'✦ 負能量'}
+        </div>
+        <div class="my-quote-text">${escHtml(q.text)}</div>
+        ${q.source ? `<div class="quote-source" style="margin-top:8px">${escHtml(q.source)}</div>` : ''}
+      </div>
+      <div class="my-quote-actions">
+        <button class="delete-btn" onclick="deleteMyQuote(${q.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Tab switching ────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'mine') renderMyQuotes();
+}
+
+// ─── Toast ────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ─── Date display ─────────────────────────────────────────
+function renderDate() {
+  const d = new Date();
+  const weekdays = ['日','一','二','三','四','五','六'];
+  const str = `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日・星期${weekdays[d.getDay()]}`;
+  document.getElementById('headerDate').textContent = str;
+}
+
+// ─── Init ─────────────────────────────────────────────────
+renderDate();
+renderToday();
+</script>
+</body>
+</html>
